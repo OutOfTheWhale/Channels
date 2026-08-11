@@ -63,8 +63,8 @@ fun ChannelsRoot() {
         val encoded = URLEncoder.encode(url, StandardCharsets.UTF_8.name())
         navController.navigate("channel/$encoded")
     }
-    val onPlayVideo: (VideoItem) -> Unit = { video ->
-        player.play(video)
+    val onPlay: (List<VideoItem>, Int) -> Unit = { list, index ->
+        player.playQueue(list, index)
         navController.navigate(PLAYER_ROUTE)
     }
 
@@ -99,12 +99,12 @@ fun ChannelsRoot() {
             startDestination = Dest.Home.route,
             modifier = Modifier.padding(padding),
         ) {
-            composable(Dest.Home.route) { HomeScreen(onPlayVideo = onPlayVideo) }
+            composable(Dest.Home.route) { HomeScreen(onPlay = onPlay) }
             composable(Dest.Search.route) {
-                SearchScreen(onOpenChannel = openChannel, onPlayVideo = onPlayVideo)
+                SearchScreen(onOpenChannel = openChannel, onPlay = onPlay)
             }
             composable(Dest.Library.route) {
-                LibraryScreen(onOpenChannel = openChannel, onPlayVideo = onPlayVideo)
+                LibraryScreen(onOpenChannel = openChannel, onPlay = onPlay)
             }
             composable("channel/{channelUrl}") { entry ->
                 val encoded = entry.arguments?.getString("channelUrl").orEmpty()
@@ -112,11 +112,15 @@ fun ChannelsRoot() {
                 ChannelScreen(
                     channelUrl = channelUrl,
                     onBack = { navController.popBackStack() },
-                    onPlayVideo = onPlayVideo,
+                    onPlay = onPlay,
                 )
             }
             composable(PLAYER_ROUTE) {
-                PlayerScreen(controller = player, onBack = { navController.popBackStack() })
+                PlayerScreen(
+                    controller = player,
+                    onBack = { navController.popBackStack() },
+                    onOpenChannel = openChannel,
+                )
             }
         }
     }

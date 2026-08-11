@@ -55,6 +55,10 @@ class PlayerController(
     private var controller: MediaController? = null
     private var positionJob: Job? = null
 
+    // The current play queue, so playback auto-advances to the next item when one ends.
+    private var queue: List<VideoItem> = emptyList()
+    private var queueIndex: Int = 0
+
     private val _state = MutableStateFlow(PlayerState())
     val state = _state.asStateFlow()
 
@@ -80,6 +84,7 @@ class PlayerController(
                     durationMs = knownDuration() ?: it.durationMs,
                 )
             }
+            if (playbackState == Player.STATE_ENDED) advanceToNext()
         }
 
         override fun onPlaybackParametersChanged(params: PlaybackParameters) {
@@ -87,8 +92,29 @@ class PlayerController(
         }
     }
 
-    /** Resolve a video's audio and start playing it. */
-    fun play(video: VideoItem) {
+    /** Play a single video (a one-item queue). */
+    fun play(video: VideoItem) = playQueue(listOf(video), 0)
+
+    /**
+     * Play a list of videos starting at [startIndex]. When one finishes, the next in
+     * the list starts automatically.
+     */
+    fun playQueue(videos: List<VideoItem>, startIndex: Int) {
+        if (videos.isEmpty()) return
+        queue = videos
+        queueIndex = startIndex.coerceIn(0, videos.lastIndex)
+        loadCurrent()
+    }
+
+    private fun advanceToNext() {
+        if (queueIndex < queue.lastIndex) {
+            queueIndex++
+            loadCurrent()
+        }
+    }
+
+    private fun loadCurrent() {
+        val video = queue.getOrNull(queueIndex) ?: return
         _state.update { it.copy(loadingTitle = video.title, error = null) }
         scope.launch {
             try {

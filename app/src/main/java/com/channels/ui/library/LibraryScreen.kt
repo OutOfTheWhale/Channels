@@ -31,7 +31,7 @@ import com.channels.ui.theme.Slate
 @Composable
 fun LibraryScreen(
     onOpenChannel: (String) -> Unit,
-    onPlayVideo: (VideoItem) -> Unit,
+    onPlay: (List<VideoItem>, Int) -> Unit,
 ) {
     val vm: LibraryViewModel = viewModel(
         factory = containerViewModelFactory { LibraryViewModel(it.starredRepository, it.downloadRepository) },
@@ -52,6 +52,19 @@ fun LibraryScreen(
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (state.starred.isNotEmpty()) {
+                item { SectionLabel("Starred channels") }
+                items(state.starred, key = { it.url }) { channel ->
+                    ListRow(
+                        title = channel.name,
+                        subtitle = formatSubscribers(channel.subscriberCount),
+                        onClick = { onOpenChannel(channel.url) },
+                        trailing = { StarToggle(starred = true, onToggle = { vm.unstar(channel.url) }) },
+                    )
+                    RowDivider()
+                }
+            }
+
             if (state.downloads.isNotEmpty()) {
                 item { SectionLabel("Downloads") }
                 items(state.downloads, key = { it.videoUrl }) { dl ->
@@ -59,7 +72,7 @@ fun LibraryScreen(
                         title = dl.title,
                         subtitle = downloadSubtitle(dl),
                         onClick = {
-                            if (dl.state == DownloadState.COMPLETED) onPlayVideo(dl.toVideoItem())
+                            if (dl.state == DownloadState.COMPLETED) onPlay(listOf(dl.toVideoItem()), 0)
                         },
                         trailing = {
                             Text(
@@ -71,19 +84,6 @@ fun LibraryScreen(
                                     .padding(8.dp),
                             )
                         },
-                    )
-                    RowDivider()
-                }
-            }
-
-            if (state.starred.isNotEmpty()) {
-                item { SectionLabel("Channels") }
-                items(state.starred, key = { it.url }) { channel ->
-                    ListRow(
-                        title = channel.name,
-                        subtitle = formatSubscribers(channel.subscriberCount),
-                        onClick = { onOpenChannel(channel.url) },
-                        trailing = { StarToggle(starred = true, onToggle = { vm.unstar(channel.url) }) },
                     )
                     RowDivider()
                 }

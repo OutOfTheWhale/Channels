@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 fun PlayerScreen(
     controller: PlayerController,
     onBack: () -> Unit,
+    onOpenChannel: (String) -> Unit,
 ) {
     val state by controller.state.collectAsStateWithLifecycle()
 
@@ -85,11 +86,17 @@ fun PlayerScreen(
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(10.dp))
+            val uploaderUrl = state.track?.uploaderUrl
             Text(
                 text = state.track?.uploader ?: "",
                 style = MaterialTheme.typography.titleMedium,
-                color = Slate,
+                color = if (uploaderUrl != null) Ink else Slate, // brighter = tappable
                 textAlign = TextAlign.Center,
+                modifier = if (uploaderUrl != null) {
+                    Modifier.clickable { onOpenChannel(uploaderUrl) }
+                } else {
+                    Modifier
+                },
             )
 
             Spacer(Modifier.height(28.dp))
@@ -115,8 +122,8 @@ fun PlayerScreen(
                     onSeekChange = { dragging = true; dragMs = it },
                     onSeekFinished = { controller.seekTo(dragMs); dragging = false },
                     onPlayPause = controller::togglePlayPause,
-                    onSkipBack = { controller.skip(-30_000) },
-                    onSkipForward = { controller.skip(30_000) },
+                    onSkipBack = { controller.skip(-15_000) },
+                    onSkipForward = { controller.skip(15_000) },
                     onCycleSpeed = controller::cycleSpeed,
                 )
             }
@@ -178,11 +185,11 @@ private fun PlaybackControls(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        GlyphButton(text = "−30", onClick = onSkipBack)
+        GlyphButton(text = "−15", onClick = onSkipBack)
         Spacer(Modifier.size(28.dp))
         BigPlayButton(isPlaying = isPlaying, isBuffering = isBuffering, onClick = onPlayPause)
         Spacer(Modifier.size(28.dp))
-        GlyphButton(text = "+30", onClick = onSkipForward)
+        GlyphButton(text = "+15", onClick = onSkipForward)
     }
 
     Spacer(Modifier.height(24.dp))
@@ -262,13 +269,16 @@ private fun DownloadControl(track: AudioTrack, modifier: Modifier = Modifier) {
         }
     }
 
+    // Only make the button tappable when there's an action (idle/failed/completed).
+    val interactive = download?.state != DownloadState.QUEUED && download?.state != DownloadState.RUNNING
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,
-        color = Slate,
+        color = if (interactive) Ink else Slate,
         modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .border(1.dp, Hairline, CircleShape)
+            .clickable(enabled = interactive, onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
     )
 }
 

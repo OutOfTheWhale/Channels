@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +27,7 @@ import com.channels.ui.theme.Ink
 import com.channels.ui.theme.Slate
 
 @Composable
-fun HomeScreen(onPlayVideo: (VideoItem) -> Unit) {
+fun HomeScreen(onPlay: (List<VideoItem>, Int) -> Unit) {
     val vm: HomeViewModel = viewModel(
         factory = containerViewModelFactory { HomeViewModel(it.feedRepository, it.starredRepository) },
     )
@@ -63,11 +63,11 @@ fun HomeScreen(onPlayVideo: (VideoItem) -> Unit) {
             state.feed.isEmpty() ->
                 CenteredNote("No recent long-form audio yet. Pull ↻ to refresh.")
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(state.feed, key = { it.url }) { video ->
+                itemsIndexed(state.feed, key = { _, v -> v.url }) { index, video ->
                     ListRow(
                         title = video.title,
                         subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
-                        onClick = { onPlayVideo(video) },
+                        onClick = { onPlay(state.feed, index) },
                     )
                     RowDivider()
                 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +36,7 @@ import com.channels.ui.theme.Slate
 @Composable
 fun SearchScreen(
     onOpenChannel: (String) -> Unit,
-    onPlayVideo: (VideoItem) -> Unit,
+    onPlay: (List<VideoItem>, Int) -> Unit,
 ) {
     val vm: SearchViewModel = viewModel(
         factory = containerViewModelFactory { SearchViewModel(it.youtubeRepository, it.starredRepository) },
@@ -92,11 +93,11 @@ fun SearchScreen(
                     CenteredNote("No videos found.")
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(state.videos, key = { it.url }) { video ->
+                        itemsIndexed(state.videos, key = { _, v -> v.url }) { index, video ->
                             ListRow(
                                 title = video.title,
                                 subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
-                                onClick = { onPlayVideo(video) },
+                                onClick = { onPlay(state.videos, index) },
                             )
                             RowDivider()
                         }

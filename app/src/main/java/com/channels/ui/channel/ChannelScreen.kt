@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +35,7 @@ import com.channels.ui.theme.Slate
 fun ChannelScreen(
     channelUrl: String,
     onBack: () -> Unit,
-    onPlayVideo: (VideoItem) -> Unit,
+    onPlay: (List<VideoItem>, Int) -> Unit,
 ) {
     val vm: ChannelViewModel = viewModel(
         key = channelUrl,
@@ -86,11 +86,11 @@ fun ChannelScreen(
             state.error != null -> CenteredNote(state.error!!)
             state.uploads.isEmpty() -> CenteredNote("No long-form videos found.")
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(state.uploads, key = { it.url }) { video ->
+                itemsIndexed(state.uploads, key = { _, v -> v.url }) { index, video ->
                     ListRow(
                         title = video.title,
                         subtitle = durationOrLive(video.durationSeconds),
-                        onClick = { onPlayVideo(video) },
+                        onClick = { onPlay(state.uploads, index) },
                     )
                     RowDivider()
                 }
