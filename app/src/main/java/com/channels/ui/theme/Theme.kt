@@ -3,6 +3,7 @@ package com.channels.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 
 private val ChannelsColorScheme = darkColorScheme(
     primary = Ink,
@@ -25,9 +26,10 @@ private val ChannelsColorScheme = darkColorScheme(
  */
 @Composable
 fun ChannelsTheme(content: @Composable () -> Unit) {
+    val typography = remember { channelsTypography(lightFontFamily()) }
     MaterialTheme(
         colorScheme = ChannelsColorScheme,
-        typography = ChannelsTypography,
+        typography = typography,
         content = content,
     )
 }
