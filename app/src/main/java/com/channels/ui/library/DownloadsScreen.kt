@@ -57,11 +57,13 @@ fun DownloadsScreen(onBack: () -> Unit, onPlay: (List<VideoItem>, Int) -> Unit) 
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(items, key = { it.videoUrl }) { dl ->
+                    val completed = dl.state == DownloadState.COMPLETED
                     ListRow(
                         title = dl.title,
-                        subtitle = downloadSubtitle(dl),
-                        onClick = { if (dl.state == DownloadState.COMPLETED) onPlay(listOf(dl.toVideoItem()), 0) },
+                        subtitle = if (completed) dl.uploader else downloadSubtitle(dl),
+                        onClick = { if (completed) onPlay(listOf(dl.toVideoItem()), 0) },
                         leading = { VideoThumb(dl.thumbnailUrl) },
+                        endText = if (completed) durationOrLive(dl.durationSeconds) else null,
                         trailing = {
                             Text(
                                 text = "✕",

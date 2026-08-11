@@ -91,9 +91,10 @@ fun ChannelScreen(
                 itemsIndexed(state.uploads, key = { _, v -> v.url }) { index, video ->
                     ListRow(
                         title = video.title,
-                        subtitle = durationOrLive(video.durationSeconds),
+                        subtitle = null,
                         onClick = { onPlay(state.uploads, index) },
                         leading = { VideoThumb(video.thumbnailUrl) },
+                        endText = durationOrLive(video.durationSeconds),
                         trailing = { AddToPlaylistButton(video) },
                     )
                     RowDivider()

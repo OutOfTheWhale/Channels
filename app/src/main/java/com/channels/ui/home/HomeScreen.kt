@@ -74,10 +74,11 @@ fun HomeScreen(onPlay: (List<VideoItem>, Int) -> Unit) {
                 itemsIndexed(state.feed, key = { _, v -> v.url }) { index, video ->
                     ListRow(
                         title = video.title,
-                        subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
+                        subtitle = video.uploader,
                         onClick = { onPlay(state.feed, index) },
                         leading = { VideoThumb(video.thumbnailUrl) },
                         downloaded = state.downloadedUrls.contains(video.url),
+                        endText = durationOrLive(video.durationSeconds),
                         trailing = { AddToPlaylistButton(video) },
                     )
                     RowDivider()

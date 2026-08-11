@@ -5,15 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.channels.ui.theme.Ink
 import com.channels.ui.theme.Mist
 
 /** Circular channel avatar. Falls back to a neutral block when there's no image. */
@@ -46,10 +43,4 @@ fun VideoThumb(url: String?, width: Int = 72, height: Int = 44) {
             modifier = Modifier.size(width.dp, height.dp).clip(shape).background(Mist),
         )
     }
-}
-
-/** Small "downloaded" marker shown next to videos saved for offline. */
-@Composable
-fun DownloadedGlyph() {
-    Text(text = "⤓", style = MaterialTheme.typography.titleMedium, color = Ink)
 }

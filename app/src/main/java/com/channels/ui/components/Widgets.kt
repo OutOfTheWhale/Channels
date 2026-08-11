@@ -86,7 +86,11 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** A generic two-line list row with optional leading image, downloaded marker, and trailing slot. */
+/**
+ * A generic two-line list row. The second line shows [subtitle] on the left (with a
+ * downloaded ⤓ mark right after it when [downloaded]) and [endText] (e.g. duration)
+ * right-aligned, then an optional [trailing] slot at the far right.
+ */
 @Composable
 fun ListRow(
     title: String,
@@ -95,6 +99,7 @@ fun ListRow(
     modifier: Modifier = Modifier,
     leading: @Composable (() -> Unit)? = null,
     downloaded: Boolean = false,
+    endText: String? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
@@ -112,28 +117,50 @@ fun ListRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (downloaded) {
-                    DownloadedGlyph()
-                    Spacer(Modifier.width(6.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Ink,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (subtitle != null || endText != null || downloaded) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (!subtitle.isNullOrBlank()) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Slate,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                        }
+                        if (downloaded) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "⤓",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Ink,
+                            )
+                        }
+                    }
+                    if (endText != null) {
+                        Text(
+                            text = endText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Slate,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Ink,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Slate,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
         if (trailing != null) {
@@ -148,9 +175,9 @@ fun RowDivider() {
     HorizontalDivider(color = Hairline, thickness = 1.dp, modifier = Modifier.padding(start = 16.dp))
 }
 
-/** A back chevron + title header used by the Library sub-screens. */
+/** A back chevron + title header used by the Library sub-screens, with an optional trailing action. */
 @Composable
-fun BackHeader(title: String, onBack: () -> Unit) {
+fun BackHeader(title: String, onBack: () -> Unit, trailing: @Composable (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,8 +196,12 @@ fun BackHeader(title: String, onBack: () -> Unit) {
             color = Ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
+        if (trailing != null) {
+            Spacer(Modifier.width(8.dp))
+            trailing()
+        }
     }
     RowDivider()
 }

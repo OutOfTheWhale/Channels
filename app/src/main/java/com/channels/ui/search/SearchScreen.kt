@@ -100,9 +100,10 @@ fun SearchScreen(
                         itemsIndexed(state.videos, key = { _, v -> v.url }) { index, video ->
                             ListRow(
                                 title = video.title,
-                                subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
+                                subtitle = video.uploader,
                                 onClick = { onPlay(state.videos, index) },
                                 leading = { VideoThumb(video.thumbnailUrl) },
+                                endText = durationOrLive(video.durationSeconds),
                                 trailing = { AddToPlaylistButton(video) },
                             )
                             RowDivider()
