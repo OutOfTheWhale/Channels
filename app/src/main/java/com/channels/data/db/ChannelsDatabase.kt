@@ -29,7 +29,9 @@ abstract class ChannelsDatabase : RoomDatabase() {
                 ChannelsDatabase::class.java,
                 "channels.db",
             )
-                // Pre-release: the cached feed is disposable, so just rebuild on schema change.
+                // Real migrations so starred channels, playlists, and downloads survive
+                // app updates. Destructive fallback stays only as a last-resort safety net.
+                .addMigrations(*ALL_MIGRATIONS)
                 .fallbackToDestructiveMigration()
                 .build()
     }
