@@ -22,6 +22,13 @@ data class ChannelItem(
     val description: String?,
 )
 
+/** A user playlist and how many videos it holds. */
+data class Playlist(
+    val id: Long,
+    val name: String,
+    val itemCount: Int,
+)
+
 enum class DownloadState { QUEUED, RUNNING, COMPLETED, FAILED }
 
 /** An offline download of a video's audio, with progress. */

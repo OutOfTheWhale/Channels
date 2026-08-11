@@ -86,13 +86,15 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** A generic two-line list row with an optional trailing slot. */
+/** A generic two-line list row with optional leading image, downloaded marker, and trailing slot. */
 @Composable
 fun ListRow(
     title: String,
     subtitle: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    leading: @Composable (() -> Unit)? = null,
+    downloaded: Boolean = false,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
@@ -102,17 +104,28 @@ fun ListRow(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (leading != null) {
+            leading()
+            Spacer(Modifier.width(12.dp))
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = Ink,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (downloaded) {
+                    DownloadedGlyph()
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     text = subtitle,
@@ -133,6 +146,33 @@ fun ListRow(
 @Composable
 fun RowDivider() {
     HorizontalDivider(color = Hairline, thickness = 1.dp, modifier = Modifier.padding(start = 16.dp))
+}
+
+/** A back chevron + title header used by the Library sub-screens. */
+@Composable
+fun BackHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "‹",
+            style = MaterialTheme.typography.displaySmall,
+            color = Ink,
+            modifier = Modifier.clickable(onClick = onBack).padding(horizontal = 8.dp),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = Ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+    }
+    RowDivider()
 }
 
 /** Centered status text (loading / empty / error). */

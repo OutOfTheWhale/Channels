@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,9 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.channels.domain.model.VideoItem
+import com.channels.ui.components.AddToPlaylistButton
 import com.channels.ui.components.CenteredNote
 import com.channels.ui.components.ListRow
 import com.channels.ui.components.RowDivider
+import com.channels.ui.components.VideoThumb
 import com.channels.ui.components.durationOrLive
 import com.channels.ui.containerViewModelFactory
 import com.channels.ui.theme.Ink
@@ -29,9 +32,14 @@ import com.channels.ui.theme.Slate
 @Composable
 fun HomeScreen(onPlay: (List<VideoItem>, Int) -> Unit) {
     val vm: HomeViewModel = viewModel(
-        factory = containerViewModelFactory { HomeViewModel(it.feedRepository, it.starredRepository) },
+        factory = containerViewModelFactory {
+            HomeViewModel(it.feedRepository, it.starredRepository, it.downloadRepository)
+        },
     )
     val state by vm.state.collectAsStateWithLifecycle()
+
+    // Refresh every time Home becomes visible.
+    LaunchedEffect(Unit) { vm.refresh() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -68,6 +76,9 @@ fun HomeScreen(onPlay: (List<VideoItem>, Int) -> Unit) {
                         title = video.title,
                         subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
                         onClick = { onPlay(state.feed, index) },
+                        leading = { VideoThumb(video.thumbnailUrl) },
+                        downloaded = state.downloadedUrls.contains(video.url),
+                        trailing = { AddToPlaylistButton(video) },
                     )
                     RowDivider()
                 }

@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.media3.session)
 
     implementation(libs.workmanager)
+    implementation(libs.coil.compose)
 
     debugImplementation(libs.androidx.ui.tooling)
 

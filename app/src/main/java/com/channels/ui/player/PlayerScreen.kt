@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import com.channels.domain.model.AudioTrack
 import com.channels.domain.model.DownloadState
 import com.channels.domain.model.VideoItem
 import com.channels.playback.PlayerController
+import com.channels.ui.components.AddToPlaylistButton
 import com.channels.ui.components.CenteredNote
 import com.channels.ui.components.formatDuration
 import com.channels.ui.rememberAppContainer
@@ -131,12 +133,16 @@ fun PlayerScreen(
 
         // Anchored at the bottom so it's always visible, never clipped by the controls.
         state.track?.let { track ->
-            DownloadControl(
-                track = track,
+            Row(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(bottom = 16.dp),
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DownloadControl(track = track)
+                Spacer(Modifier.width(12.dp))
+                AddToPlaylistButton(track.toVideoItem())
+            }
         }
     }
 }

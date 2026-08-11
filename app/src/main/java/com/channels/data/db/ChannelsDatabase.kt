@@ -6,14 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [StarredChannelEntity::class, FeedItemEntity::class, DownloadEntity::class],
-    version = 3,
+    entities = [
+        StarredChannelEntity::class,
+        FeedItemEntity::class,
+        DownloadEntity::class,
+        PlaylistEntity::class,
+        PlaylistItemEntity::class,
+    ],
+    version = 4,
     exportSchema = false,
 )
 abstract class ChannelsDatabase : RoomDatabase() {
     abstract fun starredChannelDao(): StarredChannelDao
     abstract fun feedItemDao(): FeedItemDao
     abstract fun downloadDao(): DownloadDao
+    abstract fun playlistDao(): PlaylistDao
 
     companion object {
         fun build(context: Context): ChannelsDatabase =

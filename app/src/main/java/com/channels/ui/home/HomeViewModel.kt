@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.channels.data.FeedRepository
 import com.channels.data.StarredRepository
+import com.channels.data.download.DownloadRepository
 import com.channels.domain.model.VideoItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val feed: List<VideoItem> = emptyList(),
+    val downloadedUrls: Set<String> = emptySet(),
     val refreshing: Boolean = false,
     val hasStarred: Boolean = true,
     val error: String? = null,
@@ -20,6 +22,7 @@ data class HomeUiState(
 class HomeViewModel(
     private val feedRepo: FeedRepository,
     private val starred: StarredRepository,
+    private val downloads: DownloadRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -27,16 +30,18 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            feedRepo.observeFeed().collect { feed ->
-                _state.update { it.copy(feed = feed) }
-            }
+            feedRepo.observeFeed().collect { feed -> _state.update { it.copy(feed = feed) } }
         }
         viewModelScope.launch {
             starred.observeStarred().collect { list ->
                 _state.update { it.copy(hasStarred = list.isNotEmpty()) }
             }
         }
-        refresh()
+        viewModelScope.launch {
+            downloads.observeCompletedUrls().collect { urls ->
+                _state.update { it.copy(downloadedUrls = urls) }
+            }
+        }
     }
 
     fun refresh() {

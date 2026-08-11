@@ -12,76 +12,62 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.channels.data.download.DownloadRepository
 import com.channels.domain.model.DownloadItem
 import com.channels.domain.model.DownloadState
 import com.channels.domain.model.VideoItem
+import com.channels.ui.components.BackHeader
 import com.channels.ui.components.CenteredNote
 import com.channels.ui.components.ListRow
 import com.channels.ui.components.RowDivider
-import com.channels.ui.components.SectionLabel
-import com.channels.ui.components.StarToggle
+import com.channels.ui.components.VideoThumb
 import com.channels.ui.components.durationOrLive
-import com.channels.ui.components.formatSubscribers
 import com.channels.ui.containerViewModelFactory
-import com.channels.ui.theme.Ink
 import com.channels.ui.theme.Slate
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+class DownloadsViewModel(private val downloads: DownloadRepository) : ViewModel() {
+    private val _items = MutableStateFlow<List<DownloadItem>>(emptyList())
+    val items = _items.asStateFlow()
+
+    init {
+        viewModelScope.launch { downloads.observeDownloads().collect { _items.value = it } }
+    }
+
+    fun delete(url: String) = viewModelScope.launch { downloads.delete(url) }.let {}
+}
 
 @Composable
-fun LibraryScreen(
-    onOpenChannel: (String) -> Unit,
-    onPlay: (List<VideoItem>, Int) -> Unit,
-) {
-    val vm: LibraryViewModel = viewModel(
-        factory = containerViewModelFactory { LibraryViewModel(it.starredRepository, it.downloadRepository) },
+fun DownloadsScreen(onBack: () -> Unit, onPlay: (List<VideoItem>, Int) -> Unit) {
+    val vm: DownloadsViewModel = viewModel(
+        factory = containerViewModelFactory { DownloadsViewModel(it.downloadRepository) },
     )
-    val state by vm.state.collectAsStateWithLifecycle()
+    val items by vm.items.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "Library",
-            style = MaterialTheme.typography.displaySmall,
-            color = Ink,
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-        )
-
-        if (state.loaded && state.starred.isEmpty() && state.downloads.isEmpty()) {
-            CenteredNote("Star a channel from Search, or download a show to keep it offline.")
-            return@Column
-        }
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            if (state.starred.isNotEmpty()) {
-                item { SectionLabel("Starred channels") }
-                items(state.starred, key = { it.url }) { channel ->
-                    ListRow(
-                        title = channel.name,
-                        subtitle = formatSubscribers(channel.subscriberCount),
-                        onClick = { onOpenChannel(channel.url) },
-                        trailing = { StarToggle(starred = true, onToggle = { vm.unstar(channel.url) }) },
-                    )
-                    RowDivider()
-                }
-            }
-
-            if (state.downloads.isNotEmpty()) {
-                item { SectionLabel("Downloads") }
-                items(state.downloads, key = { it.videoUrl }) { dl ->
+        BackHeader("Downloads", onBack)
+        if (items.isEmpty()) {
+            CenteredNote("No downloads yet. Open a show and tap “Download for offline”.")
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(items, key = { it.videoUrl }) { dl ->
                     ListRow(
                         title = dl.title,
                         subtitle = downloadSubtitle(dl),
-                        onClick = {
-                            if (dl.state == DownloadState.COMPLETED) onPlay(listOf(dl.toVideoItem()), 0)
-                        },
+                        onClick = { if (dl.state == DownloadState.COMPLETED) onPlay(listOf(dl.toVideoItem()), 0) },
+                        leading = { VideoThumb(dl.thumbnailUrl) },
                         trailing = {
                             Text(
                                 text = "✕",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Slate,
-                                modifier = Modifier
-                                    .clickable { vm.deleteDownload(dl.videoUrl) }
-                                    .padding(8.dp),
+                                modifier = Modifier.clickable { vm.delete(dl.videoUrl) }.padding(8.dp),
                             )
                         },
                     )

@@ -21,10 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.channels.domain.model.VideoItem
+import com.channels.ui.components.AddToPlaylistButton
 import com.channels.ui.components.CenteredNote
 import com.channels.ui.components.ListRow
 import com.channels.ui.components.RowDivider
 import com.channels.ui.components.StarToggle
+import com.channels.ui.components.VideoThumb
 import com.channels.ui.components.durationOrLive
 import com.channels.ui.components.formatSubscribers
 import com.channels.ui.containerViewModelFactory
@@ -91,6 +93,8 @@ fun ChannelScreen(
                         title = video.title,
                         subtitle = durationOrLive(video.durationSeconds),
                         onClick = { onPlay(state.uploads, index) },
+                        leading = { VideoThumb(video.thumbnailUrl) },
+                        trailing = { AddToPlaylistButton(video) },
                     )
                     RowDivider()
                 }

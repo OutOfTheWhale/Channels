@@ -26,6 +26,12 @@ class DownloadRepository(
     fun observeDownloads(): Flow<List<DownloadItem>> =
         dao.observeAll().map { rows -> rows.map { it.toItem() } }
 
+    /** Set of video URLs that are fully downloaded, for showing a "downloaded" marker. */
+    fun observeCompletedUrls(): Flow<Set<String>> =
+        dao.observeAll().map { rows ->
+            rows.filter { it.state == DownloadState.COMPLETED.name }.map { it.videoUrl }.toSet()
+        }
+
     fun observeDownload(videoUrl: String): Flow<DownloadItem?> =
         dao.observe(videoUrl).map { it?.toItem() }
 

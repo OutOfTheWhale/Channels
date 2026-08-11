@@ -22,11 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.channels.domain.model.VideoItem
+import com.channels.ui.components.AddToPlaylistButton
 import com.channels.ui.components.CenteredNote
+import com.channels.ui.components.ChannelAvatar
 import com.channels.ui.components.LightSearchField
 import com.channels.ui.components.ListRow
 import com.channels.ui.components.RowDivider
 import com.channels.ui.components.StarToggle
+import com.channels.ui.components.VideoThumb
 import com.channels.ui.components.durationOrLive
 import com.channels.ui.components.formatSubscribers
 import com.channels.ui.containerViewModelFactory
@@ -76,6 +79,7 @@ fun SearchScreen(
                                 title = channel.name,
                                 subtitle = formatSubscribers(channel.subscriberCount),
                                 onClick = { onOpenChannel(channel.url) },
+                                leading = { ChannelAvatar(channel.thumbnailUrl) },
                                 trailing = {
                                     StarToggle(
                                         starred = state.starredUrls.contains(channel.url),
@@ -98,6 +102,8 @@ fun SearchScreen(
                                 title = video.title,
                                 subtitle = "${video.uploader}  ·  ${durationOrLive(video.durationSeconds)}",
                                 onClick = { onPlay(state.videos, index) },
+                                leading = { VideoThumb(video.thumbnailUrl) },
+                                trailing = { AddToPlaylistButton(video) },
                             )
                             RowDivider()
                         }

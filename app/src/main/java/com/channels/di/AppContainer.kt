@@ -2,6 +2,7 @@ package com.channels.di
 
 import android.content.Context
 import com.channels.data.FeedRepository
+import com.channels.data.PlaylistRepository
 import com.channels.data.StarredRepository
 import com.channels.data.db.ChannelsDatabase
 import com.channels.data.download.DownloadRepository
@@ -33,5 +34,9 @@ class AppContainer(private val appContext: Context) {
 
     val feedRepository: FeedRepository by lazy {
         FeedRepository(youtubeRepository, starredRepository, database.feedItemDao())
+    }
+
+    val playlistRepository: PlaylistRepository by lazy {
+        PlaylistRepository(database.playlistDao())
     }
 }
