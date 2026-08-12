@@ -1,5 +1,6 @@
 package com.channels.ui.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.channels.ui.components.formatDuration
 import com.channels.ui.rememberAppContainer
 import com.channels.ui.theme.Hairline
 import com.channels.ui.theme.Ink
+import com.channels.ui.theme.Paper
 import com.channels.ui.theme.Slate
 import kotlinx.coroutines.launch
 
@@ -74,7 +77,7 @@ fun PlayerScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -120,18 +123,20 @@ fun PlayerScreen(
                     durationMs = state.durationMs,
                     isPlaying = state.isPlaying,
                     isBuffering = state.isBuffering,
-                    speed = state.speed,
+                    hasNext = state.hasNext,
+                    hasPrevious = state.hasPrevious,
                     onSeekChange = { dragging = true; dragMs = it },
                     onSeekFinished = { controller.seekTo(dragMs); dragging = false },
                     onPlayPause = controller::togglePlayPause,
                     onSkipBack = { controller.skip(-15_000) },
                     onSkipForward = { controller.skip(15_000) },
-                    onCycleSpeed = controller::cycleSpeed,
+                    onPrevious = controller::skipToPrevious,
+                    onNext = controller::skipToNext,
                 )
             }
         }
 
-        // Anchored at the bottom so it's always visible, never clipped by the controls.
+        // Bottom action row (left→right): download, playback speed, add-to-playlist.
         state.track?.let { track ->
             Row(
                 modifier = Modifier
@@ -140,7 +145,9 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 DownloadControl(track = track)
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(24.dp))
+                SpeedControl(speed = state.speed, onCycle = controller::cycleSpeed)
+                Spacer(Modifier.width(24.dp))
                 AddToPlaylistButton(track.toVideoItem())
             }
         }
@@ -153,13 +160,15 @@ private fun PlaybackControls(
     durationMs: Long,
     isPlaying: Boolean,
     isBuffering: Boolean,
-    speed: Float,
+    hasNext: Boolean,
+    hasPrevious: Boolean,
     onSeekChange: (Long) -> Unit,
     onSeekFinished: () -> Unit,
     onPlayPause: () -> Unit,
     onSkipBack: () -> Unit,
     onSkipForward: () -> Unit,
-    onCycleSpeed: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
 ) {
     val hasDuration = durationMs > 0
     Slider(
@@ -191,31 +200,23 @@ private fun PlaybackControls(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        GlyphButton(text = "|◀", onClick = onPrevious, enabled = hasPrevious)
+        Spacer(Modifier.size(6.dp))
         GlyphButton(text = "−15", onClick = onSkipBack)
-        Spacer(Modifier.size(28.dp))
+        Spacer(Modifier.size(10.dp))
         BigPlayButton(isPlaying = isPlaying, isBuffering = isBuffering, onClick = onPlayPause)
-        Spacer(Modifier.size(28.dp))
+        Spacer(Modifier.size(10.dp))
         GlyphButton(text = "+15", onClick = onSkipForward)
+        Spacer(Modifier.size(6.dp))
+        GlyphButton(text = "▶|", onClick = onNext, enabled = hasNext)
     }
-
-    Spacer(Modifier.height(24.dp))
-
-    Text(
-        text = formatSpeed(speed),
-        style = MaterialTheme.typography.titleMedium,
-        color = Ink,
-        modifier = Modifier
-            .border(1.dp, Hairline, CircleShape)
-            .clickable(onClick = onCycleSpeed)
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-    )
 }
 
 @Composable
 private fun BigPlayButton(isPlaying: Boolean, isBuffering: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(84.dp)
+            .size(68.dp)
             .border(2.dp, Ink, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -230,14 +231,14 @@ private fun BigPlayButton(isPlaying: Boolean, isBuffering: Boolean, onClick: () 
 }
 
 @Composable
-private fun GlyphButton(text: String, onClick: () -> Unit) {
+private fun GlyphButton(text: String, onClick: () -> Unit, enabled: Boolean = true) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleLarge,
-        color = Ink,
+        color = if (enabled) Ink else Slate,
         modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(12.dp),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(8.dp),
     )
 }
 
@@ -246,46 +247,80 @@ private fun formatSpeed(speed: Float): String {
     return "${s}×"
 }
 
+/** A round control: outlined normally, filled (inverted) when [filled]. */
 @Composable
-private fun DownloadControl(track: AudioTrack, modifier: Modifier = Modifier) {
+private fun IconPill(
+    glyph: String,
+    filled: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    contentColor: androidx.compose.ui.graphics.Color = Ink,
+) {
+    val bg = if (filled) Ink else androidx.compose.ui.graphics.Color.Transparent
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .then(if (filled) Modifier else Modifier.border(1.dp, Hairline, CircleShape))
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = glyph,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (filled) Paper else contentColor,
+        )
+    }
+}
+
+/** Playback-speed pill, tap to cycle. Sized to line up with the round buttons. */
+@Composable
+private fun SpeedControl(speed: Float, onCycle: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(48.dp)
+            .clip(CircleShape)
+            .border(1.dp, Hairline, CircleShape)
+            .clickable(onClick = onCycle)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = formatSpeed(speed), style = MaterialTheme.typography.titleMedium, color = Ink)
+    }
+}
+
+/**
+ * Download control as a single arrow. Outlined = not downloaded, dim while downloading,
+ * and filled/highlighted once downloaded (tap then to remove).
+ */
+@Composable
+private fun DownloadControl(track: AudioTrack) {
     val container = rememberAppContainer()
     val scope = rememberCoroutineScope()
     val download by container.downloadRepository
         .observeDownload(track.videoUrl)
         .collectAsStateWithLifecycle(initialValue = null)
 
-    val label: String
-    val onClick: () -> Unit
     when (download?.state) {
-        DownloadState.QUEUED -> {
-            label = "Queued…"; onClick = {}
-        }
-        DownloadState.RUNNING -> {
-            val pct = download?.progress ?: -1f
-            label = if (pct >= 0f) "Downloading ${(pct * 100).toInt()}%" else "Downloading…"
-            onClick = {}
-        }
-        DownloadState.COMPLETED -> {
-            label = "Downloaded ✓  ·  tap to remove"
-            onClick = { scope.launch { container.downloadRepository.delete(track.videoUrl) } }
-        }
-        else -> { // null or FAILED
-            label = if (download?.state == DownloadState.FAILED) "Download failed — tap to retry" else "Download for offline"
-            onClick = { scope.launch { container.downloadRepository.enqueue(track.toVideoItem()) } }
-        }
+        DownloadState.COMPLETED -> IconPill(
+            glyph = "⤓",
+            filled = true, // highlighted = downloaded
+            onClick = { scope.launch { container.downloadRepository.delete(track.videoUrl) } },
+        )
+        DownloadState.QUEUED, DownloadState.RUNNING -> IconPill(
+            glyph = "⤓",
+            filled = false,
+            enabled = false,
+            contentColor = Slate, // dim while downloading
+            onClick = {},
+        )
+        else -> IconPill(
+            glyph = "⤓",
+            filled = false,
+            onClick = { scope.launch { container.downloadRepository.enqueue(track.toVideoItem()) } },
+        )
     }
-
-    // Only make the button tappable when there's an action (idle/failed/completed).
-    val interactive = download?.state != DownloadState.QUEUED && download?.state != DownloadState.RUNNING
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = if (interactive) Ink else Slate,
-        modifier = modifier
-            .border(1.dp, Hairline, CircleShape)
-            .clickable(enabled = interactive, onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 12.dp),
-    )
 }
 
 private fun AudioTrack.toVideoItem() = VideoItem(

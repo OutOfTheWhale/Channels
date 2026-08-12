@@ -34,6 +34,8 @@ data class PlayerState(
     val positionMs: Long = 0,
     val durationMs: Long = 0,
     val speed: Float = 1f,
+    val hasNext: Boolean = false,
+    val hasPrevious: Boolean = false,
     val error: String? = null,
 ) {
     val hasContent: Boolean get() = track != null || loadingTitle != null
@@ -113,9 +115,35 @@ class PlayerController(
         }
     }
 
+    /** Manually jump to the next track in the queue. */
+    fun skipToNext() {
+        if (queueIndex < queue.lastIndex) {
+            queueIndex++
+            loadCurrent()
+        }
+    }
+
+    /** Restart the current track if we're past the start, otherwise go to the previous one. */
+    fun skipToPrevious() {
+        val pos = controller?.currentPosition ?: 0
+        if (pos > 3000 || queueIndex == 0) {
+            controller?.seekTo(0)
+        } else {
+            queueIndex--
+            loadCurrent()
+        }
+    }
+
     private fun loadCurrent() {
         val video = queue.getOrNull(queueIndex) ?: return
-        _state.update { it.copy(loadingTitle = video.title, error = null) }
+        _state.update {
+            it.copy(
+                loadingTitle = video.title,
+                error = null,
+                hasNext = queueIndex < queue.lastIndex,
+                hasPrevious = queueIndex > 0,
+            )
+        }
         scope.launch {
             try {
                 // Prefer an offline download when we have one; otherwise resolve the stream.
