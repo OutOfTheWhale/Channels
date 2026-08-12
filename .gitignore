@@ -13,3 +13,7 @@
 /downloads/
 # Machine-specific helper (hardcoded local paths)
 /run-emulator.bat
+# Signing secrets — never commit
+*.keystore
+*.jks
+keystore.properties
