@@ -50,6 +50,22 @@ class LiveExtractorSmokeTest {
     }
 
     @Test
+    fun `channel uploads include livestreams`() = runBlocking {
+        if (!liveEnabled) {
+            println("Skipping live smoke test (set -Dchannels.live=1 to run).")
+            return@runBlocking
+        }
+        val repo = YoutubeRepository()
+        val channel = repo.searchChannels("New Life Church").firstOrNull()
+            ?: run { println("no channel"); return@runBlocking }
+        println("Channel: ${channel.name}")
+        val uploads = repo.channelUploads(channel.url)
+        println("Uploads: ${uploads.size}, currently-live: ${uploads.count { it.isLive }}")
+        uploads.take(8).forEach { println("  live=${it.isLive}  ${it.durationSeconds}s  ${it.title}") }
+        assertTrue("expected uploads", uploads.isNotEmpty())
+    }
+
+    @Test
     fun `stonebridge picks english original track`() = runBlocking {
         if (!liveEnabled) {
             println("Skipping live smoke test (set -Dchannels.live=1 to run).")

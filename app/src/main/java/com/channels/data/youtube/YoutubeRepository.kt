@@ -74,28 +74,42 @@ class YoutubeRepository {
         )
     }
 
-    /** A channel's recent uploads (long-form only by default). */
+    /** A channel's recent uploads and livestreams (long-form only by default). */
     suspend fun channelUploads(channelUrl: String, includeShorts: Boolean = false): List<VideoItem> =
         withContext(Dispatchers.IO) {
             ensureInitialized()
             val info = ChannelInfo.getInfo(youtube, channelUrl)
-            val videosTab: ListLinkHandler = info.tabs.firstOrNull {
-                it.contentFilters.contains(ChannelTabs.VIDEOS)
-            } ?: return@withContext emptyList()
-
-            val tabInfo = ChannelTabInfo.getInfo(youtube, videosTab)
-            tabInfo.relatedItems
+            // Regular uploads live in the Videos tab; current/past live streams have their
+            // own Livestreams tab — pull both so live services show up too.
+            val tabs: List<ListLinkHandler> = info.tabs.filter {
+                it.contentFilters.contains(ChannelTabs.VIDEOS) ||
+                    it.contentFilters.contains(ChannelTabs.LIVESTREAMS)
+            }
+            tabs
+                .flatMap { tab ->
+                    runCatching { ChannelTabInfo.getInfo(youtube, tab).relatedItems }
+                        .getOrDefault(emptyList())
+                }
                 .filterIsInstance<StreamInfoItem>()
                 .map { it.toVideoItem() }
+                .distinctBy { it.url }
                 .filterShorts(includeShorts)
         }
 
-    /** Resolve the best directly-playable audio-only stream for a video. */
+    /** Resolve a directly-playable audio stream for a video, or the live manifest for a live stream. */
     suspend fun resolveAudio(videoUrl: String): AudioTrack = withContext(Dispatchers.IO) {
         ensureInitialized()
         val info = StreamInfo.getInfo(youtube, videoUrl)
         val audio = pickBestAudio(info.audioStreams)
-            ?: error("No audio stream available for $videoUrl")
+
+        // Non-live videos expose audio-only streams. Live streams don't — they're delivered
+        // as an HLS or DASH manifest, which ExoPlayer plays with the media3 hls/dash modules.
+        val (streamUrl, mimeType, bitrate) = when {
+            audio != null -> Triple(audio.content, audio.format?.mimeType, audio.averageBitrate)
+            info.hlsUrl.isNotBlank() -> Triple(info.hlsUrl, MIME_HLS, 0)
+            info.dashMpdUrl.isNotBlank() -> Triple(info.dashMpdUrl, MIME_DASH, 0)
+            else -> error("No audio stream available for $videoUrl")
+        }
         AudioTrack(
             videoUrl = info.url,
             title = info.name,
@@ -103,9 +117,9 @@ class YoutubeRepository {
             uploaderUrl = info.uploaderUrl,
             durationSeconds = info.duration,
             thumbnailUrl = bestImage(info.thumbnails),
-            streamUrl = audio.content, // the resolved URL for PROGRESSIVE_HTTP streams
-            mimeType = audio.format?.mimeType,
-            averageBitrate = audio.averageBitrate,
+            streamUrl = streamUrl,
+            mimeType = mimeType,
+            averageBitrate = bitrate,
         )
     }
 
@@ -155,6 +169,9 @@ class YoutubeRepository {
     }
 
     companion object {
+        const val MIME_HLS = "application/x-mpegURL"
+        const val MIME_DASH = "application/dash+xml"
+
         @Volatile private var initialized = false
 
         private fun ensureInitialized() {

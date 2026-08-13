@@ -39,7 +39,6 @@ class FeedRepository(
                 async {
                     runCatching { youtube.channelUploads(channelUrl).take(PER_CHANNEL) }
                         .getOrDefault(emptyList())
-                        .filterNot { it.isLive }
                         .map { it.toEntity(channelUrl, now) }
                 }
             }.awaitAll()

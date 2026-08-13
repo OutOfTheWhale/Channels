@@ -213,6 +213,15 @@ class PlayerController(
             .build()
         return MediaItem.Builder()
             .setUri(track.streamUrl)
+            // For live streams the mimeType is an HLS/DASH manifest type, which tells
+            // ExoPlayer to use the right (live) source factory instead of progressive.
+            .apply {
+                if (track.mimeType == YoutubeRepository.MIME_HLS ||
+                    track.mimeType == YoutubeRepository.MIME_DASH
+                ) {
+                    setMimeType(track.mimeType)
+                }
+            }
             .setMediaMetadata(metadata)
             .build()
     }
