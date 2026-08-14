@@ -94,6 +94,13 @@ class YoutubeRepository {
                 .map { it.toVideoItem() }
                 .distinctBy { it.url }
                 .filterShorts(includeShorts)
+                // Newest first (currently-live at the very top) so recent livestreams from the
+                // Livestreams tab aren't buried below every regular upload — and so they make
+                // it into the Home feed, which only keeps each channel's most-recent items.
+                .sortedWith(
+                    compareByDescending<VideoItem> { it.isLive }
+                        .thenByDescending { it.publishedAt ?: Long.MIN_VALUE },
+                )
         }
 
     /** Resolve a directly-playable audio stream for a video, or the live manifest for a live stream. */

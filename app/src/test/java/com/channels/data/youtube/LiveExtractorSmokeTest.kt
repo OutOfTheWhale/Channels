@@ -61,8 +61,11 @@ class LiveExtractorSmokeTest {
         println("Channel: ${channel.name}")
         val uploads = repo.channelUploads(channel.url)
         println("Uploads: ${uploads.size}, currently-live: ${uploads.count { it.isLive }}")
-        uploads.take(8).forEach { println("  live=${it.isLive}  ${it.durationSeconds}s  ${it.title}") }
+        uploads.take(8).forEach { println("  live=${it.isLive}  date=${it.publishedAt}  ${it.title.take(50)}") }
         assertTrue("expected uploads", uploads.isNotEmpty())
+        // Verify newest-first ordering (ignoring nulls).
+        val dates = uploads.mapNotNull { it.publishedAt }
+        assertTrue("uploads should be sorted newest-first", dates == dates.sortedDescending())
     }
 
     @Test
