@@ -10,6 +10,7 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.channels.data.PlaybackPositionRepository
 import com.channels.data.download.DownloadRepository
 import com.channels.data.youtube.YoutubeRepository
 import com.channels.domain.model.AudioTrack
@@ -50,12 +51,14 @@ class PlayerController(
     context: Context,
     private val repo: YoutubeRepository,
     private val downloads: DownloadRepository,
+    private val positions: PlaybackPositionRepository,
 ) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var controller: MediaController? = null
     private var positionJob: Job? = null
+    private var lastPersistAt = 0L
 
     // The current play queue, so playback auto-advances to the next item when one ends.
     private var queue: List<VideoItem> = emptyList()
@@ -77,6 +80,7 @@ class PlayerController(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _state.update { it.copy(isPlaying = isPlaying) }
             managePositionUpdates()
+            if (!isPlaying) persistPosition(force = true) // save the moment we pause
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -86,7 +90,10 @@ class PlayerController(
                     durationMs = knownDuration() ?: it.durationMs,
                 )
             }
-            if (playbackState == Player.STATE_ENDED) advanceToNext()
+            if (playbackState == Player.STATE_ENDED) {
+                clearPosition(_state.value.track?.videoUrl) // finished — don't resume it
+                advanceToNext()
+            }
         }
 
         override fun onPlaybackParametersChanged(params: PlaybackParameters) {
@@ -118,6 +125,7 @@ class PlayerController(
     /** Manually jump to the next track in the queue. */
     fun skipToNext() {
         if (queueIndex < queue.lastIndex) {
+            persistPosition(force = true) // save where we left the current one
             queueIndex++
             loadCurrent()
         }
@@ -129,6 +137,7 @@ class PlayerController(
         if (pos > 3000 || queueIndex == 0) {
             controller?.seekTo(0)
         } else {
+            persistPosition(force = true)
             queueIndex--
             loadCurrent()
         }
@@ -164,14 +173,20 @@ class PlayerController(
                     repo.resolveAudio(video.url) // suspends; does IO internally
                 }
                 val c = awaitController() ?: return@launch
-                c.setMediaItem(buildMediaItem(track))
+                // Resume where we left off, unless we're within 10s of the end (then start over).
+                val durMs = if (track.durationSeconds > 0) track.durationSeconds * 1000 else 0L
+                val saved = positions.getPosition(video.url)
+                val startAt = if (saved > 3000 && (durMs == 0L || saved < durMs - 10_000)) saved else 0L
+                c.setMediaItem(buildMediaItem(track), startAt)
                 c.prepare()
                 c.play()
+                lastPersistAt = System.currentTimeMillis()
                 _state.update {
                     it.copy(
                         track = track,
                         loadingTitle = null,
-                        durationMs = if (track.durationSeconds > 0) track.durationSeconds * 1000 else 0,
+                        positionMs = startAt,
+                        durationMs = durMs,
                     )
                 }
             } catch (e: Exception) {
@@ -268,6 +283,31 @@ class PlayerController(
                 durationMs = knownDuration() ?: it.durationMs,
             )
         }
+        persistPosition() // throttled save so we can resume after the app closes
+    }
+
+    /** Save the current position for the current track (throttled to ~5s unless [force]). */
+    private fun persistPosition(force: Boolean = false) {
+        val c = controller ?: return
+        val url = _state.value.track?.videoUrl ?: return
+        val now = System.currentTimeMillis()
+        if (!force && now - lastPersistAt < 5_000) return
+        lastPersistAt = now
+        val pos = c.currentPosition
+        val dur = c.duration
+        scope.launch {
+            // Don't remember the very start, or a spot within 10s of the end.
+            if (pos > 3_000 && (dur <= 0 || pos < dur - 10_000)) {
+                positions.save(url, pos)
+            } else {
+                positions.clear(url)
+            }
+        }
+    }
+
+    private fun clearPosition(url: String?) {
+        url ?: return
+        scope.launch { positions.clear(url) }
     }
 
     companion object {

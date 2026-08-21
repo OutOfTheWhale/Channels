@@ -2,6 +2,7 @@ package com.channels.di
 
 import android.content.Context
 import com.channels.data.FeedRepository
+import com.channels.data.PlaybackPositionRepository
 import com.channels.data.PlaylistRepository
 import com.channels.data.StarredRepository
 import com.channels.data.db.ChannelsDatabase
@@ -28,8 +29,12 @@ class AppContainer(private val appContext: Context) {
         DownloadRepository(appContext, database.downloadDao())
     }
 
+    val playbackPositionRepository: PlaybackPositionRepository by lazy {
+        PlaybackPositionRepository(database.playbackPositionDao())
+    }
+
     val playerController: PlayerController by lazy {
-        PlayerController(appContext, youtubeRepository, downloadRepository)
+        PlayerController(appContext, youtubeRepository, downloadRepository, playbackPositionRepository)
     }
 
     val feedRepository: FeedRepository by lazy {

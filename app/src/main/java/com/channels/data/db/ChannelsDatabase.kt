@@ -12,8 +12,9 @@ import androidx.room.RoomDatabase
         DownloadEntity::class,
         PlaylistEntity::class,
         PlaylistItemEntity::class,
+        PlaybackPositionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class ChannelsDatabase : RoomDatabase() {
@@ -21,6 +22,7 @@ abstract class ChannelsDatabase : RoomDatabase() {
     abstract fun feedItemDao(): FeedItemDao
     abstract fun downloadDao(): DownloadDao
     abstract fun playlistDao(): PlaylistDao
+    abstract fun playbackPositionDao(): PlaybackPositionDao
 
     companion object {
         fun build(context: Context): ChannelsDatabase =
