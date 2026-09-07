@@ -9,11 +9,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FeedItemDao {
 
-    // Currently-live first, then newest by publish date (unknown dates last).
-    @Query(
-        "SELECT * FROM feed_items " +
-            "ORDER BY isLive DESC, publishedAt IS NULL, publishedAt DESC, fetchedAt DESC",
-    )
+    // Newest by publish date first (unknown dates last). Live streams sort by their
+    // date like anything else — a currently-live stream is recent, but an ended one from
+    // weeks ago shouldn't be pinned to the top.
+    @Query("SELECT * FROM feed_items ORDER BY publishedAt IS NULL, publishedAt DESC, fetchedAt DESC")
     fun observeFeed(): Flow<List<FeedItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
